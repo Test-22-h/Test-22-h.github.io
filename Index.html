@@ -1,0 +1,159 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Snake Game</title>
+  <style>
+    body {
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border: 2px solid #fff;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+
+
+<canvas id="game" width="600" height="400"></canvas>
+
+
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+
+  const CELL_SIZE = 20;
+  const WIDTH = canvas.width;
+  const HEIGHT = canvas.height;
+
+
+  let snake = [{ x: 100, y: 100 }];
+  let direction = { x: CELL_SIZE, y: 0 };
+  let food = spawnFood();
+  let score = 0;
+  let speed = 100; // ms per frame
+  let gameLoop;
+
+
+  function spawnFood() {
+    return {
+      x: Math.floor(Math.random() * (WIDTH / CELL_SIZE)) * CELL_SIZE,
+      y: Math.floor(Math.random() * (HEIGHT / CELL_SIZE)) * CELL_SIZE
+    };
+  }
+
+
+  function drawRect(x, y, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+  }
+
+
+  function draw() {
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+
+    // Draw food
+    drawRect(food.x, food.y, "red");
+
+
+    // Draw snake
+    snake.forEach((segment, index) => {
+      drawRect(segment.x, segment.y, index === 0 ? "lime" : "green");
+    });
+
+
+    // Draw score
+    ctx.fillStyle = "white";
+    ctx.font = "18px Arial";
+    ctx.fillText("Score: " + score, 10, 20);
+  }
+
+
+  function update() {
+    const head = {
+      x: snake[0].x + direction.x,
+      y: snake[0].y + direction.y
+    };
+
+
+    // Wall collision
+    if (
+      head.x < 0 ||
+      head.y < 0 ||
+      head.x >= WIDTH ||
+      head.y >= HEIGHT ||
+      snake.some(seg => seg.x === head.x && seg.y === head.y)
+    ) {
+      gameOver();
+      return;
+    }
+
+
+    snake.unshift(head);
+
+
+    // Eat food
+    if (head.x === food.x && head.y === food.y) {
+      score++;
+      food = spawnFood();
+    } else {
+      snake.pop();
+    }
+
+
+    draw();
+  }
+
+
+  function gameOver() {
+    clearInterval(gameLoop);
+    ctx.fillStyle = "red";
+    ctx.font = "32px Arial";
+    ctx.fillText("Game Over", WIDTH / 2 - 90, HEIGHT / 2);
+  }
+
+
+  document.addEventListener("keydown", e => {
+    switch (e.key) {
+      case "ArrowUp":
+        if (direction.y === 0) direction = { x: 0, y: -CELL_SIZE };
+        break;
+      case "ArrowDown":
+        if (direction.y === 0) direction = { x: 0, y: CELL_SIZE };
+        break;
+      case "ArrowLeft":
+        if (direction.x === 0) direction = { x: -CELL_SIZE, y: 0 };
+        break;
+      case "ArrowRight":
+        if (direction.x === 0) direction = { x: CELL_SIZE, y: 0 };
+        break;
+    }
+  });
+
+
+  function startGame() {
+    snake = [{ x: 100, y: 100 }];
+    direction = { x: CELL_SIZE, y: 0 };
+    score = 0;
+    food = spawnFood();
+    draw();
+    gameLoop = setInterval(update, speed);
+  }
+
+
+  startGame();
+</script>
+
+
+</body>
+</html>
