@@ -1,2 +1,3 @@
 # Hi
-No.
+Welcome!
+You can use any code you want.
