@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pong Game</title>
+    <style>
+        body {
+            background: #111;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            background: #222;
+            border: 2px solid #fff;
+            margin-top: 40px;
+            display: block;
+        }
+        #score {
+            font-size: 32px;
+            margin-top: 20px;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">0 : 0</div>
+    <canvas id="gameCanvas" width="720" height="480"></canvas>
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // SETTINGS
+        const paddleWidth = 14, paddleHeight = 110;
+        const ballSize = 18;
+        const margin = 18;
+
+        let playerY = canvas.height/2 - paddleHeight/2;
+        let aiY = canvas.height/2 - paddleHeight/2;
+        let ball = {
+            x: canvas.width/2 - ballSize/2,
+            y: canvas.height/2 - ballSize/2,
+            dx: Math.random() > 0.5 ? 5 : -5,
+            dy: (Math.random() - 0.5) * 6,
+        };
+        let score = [0, 0];
+        let upPressed = false, downPressed = false;
+
+        // Mouse control
+        canvas.addEventListener('mousemove', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            let mouseY = e.clientY - rect.top;
+            playerY = mouseY - paddleHeight/2;
+            if (playerY < margin) playerY = margin;
+            if (playerY > canvas.height-paddleHeight-margin) playerY = canvas.height-paddleHeight-margin;
+        });
+        // Keyboard control
+        document.addEventListener('keydown', function(e) {
+            if (e.code === "ArrowUp") upPressed = true;
+            if (e.code === "ArrowDown") downPressed = true;
+        });
+        document.addEventListener('keyup', function(e) {
+            if (e.code === "ArrowUp") upPressed = false;
+            if (e.code === "ArrowDown") downPressed = false;
+        });
+
+        // Paddles for visual debugging: red (player), green (AI)
+        function drawPaddle(x, y, color) {
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, paddleWidth, paddleHeight);
+            ctx.restore();
+        }
+        function drawBall() {
+            ctx.save();
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(ball.x, ball.y, ballSize, ballSize);
+            ctx.restore();
+        }
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Middle line
+            ctx.save();
+            ctx.strokeStyle = "#444";
+            ctx.setLineDash([8, 16]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width/2, 0);
+            ctx.lineTo(canvas.width/2, canvas.height);
+            ctx.stroke();
+            ctx.restore();
+
+            // Debug: draw paddles with color and show positions in console
+            // Player paddle: red
+            drawPaddle(margin, playerY, "#ff4444");
+            // AI paddle: green
+            drawPaddle(canvas.width - margin - paddleWidth, aiY, "#44ff44");
+
+            // Ball
+            drawBall();
+        }
+
+        function update() {
+            // Keyboard paddle control
+            if (upPressed) {
+                playerY -= 7;
+                if (playerY < margin) playerY = margin;
+            }
+            if (downPressed) {
+                playerY += 7;
+                if (playerY > canvas.height-paddleHeight-margin) playerY = canvas.height-paddleHeight-margin;
+            }
+            // AI "easy" logic
+            let aiCenter = aiY + paddleHeight/2;
+            let target = ball.y + ballSize/2;
+            if (target < aiCenter - 10) aiY -= 4.2;
+            else if (target > aiCenter + 10) aiY += 4.2;
+            if (aiY < margin) aiY = margin;
+            if (aiY > canvas.height-paddleHeight-margin) aiY = canvas.height-paddleHeight-margin;
+
+            // Ball movement
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Top/bottom wall
+            if (ball.y < 0) {
+                ball.y = 0;
+                ball.dy *= -1;
+            }
+            if (ball.y + ballSize > canvas.height) {
+                ball.y = canvas.height - ballSize;
+                ball.dy *= -1;
+            }
+
+            // Left paddle
+            if (
+                ball.x <= margin + paddleWidth &&
+                ball.y + ballSize > playerY &&
+                ball.y < playerY + paddleHeight
+            ) {
+                ball.x = margin + paddleWidth;
+                ball.dx *= -1;
+                let c = (ball.y + ballSize/2) - (playerY + paddleHeight/2);
+                ball.dy = c * 0.19;
+            }
+
+            // Right paddle
+            if (
+                ball.x + ballSize >= canvas.width - margin - paddleWidth &&
+                ball.y + ballSize > aiY &&
+                ball.y < aiY + paddleHeight
+            ) {
+                ball.x = canvas.width - margin - paddleWidth - ballSize;
+                ball.dx *= -1;
+                let c = (ball.y + ballSize/2) - (aiY + paddleHeight/2);
+                ball.dy = c * 0.19;
+            }
+
+            // Scoring
+            if (ball.x < 0) { score[1]++; resetBall(-1); }
+            if (ball.x > canvas.width) { score[0]++; resetBall(1); }
+            updateScore();
+        }
+
+        function resetBall(dir=1) {
+            ball.x = canvas.width/2 - ballSize/2;
+            ball.y = canvas.height/2 - ballSize/2;
+            ball.dx = dir * 5 * (Math.random() > 0.5 ? 1 : -1);
+            ball.dy = (Math.random() - 0.5) * 6;
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = `${score[0]} : ${score[1]}`;
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    </script>
+</body>
+</html>
